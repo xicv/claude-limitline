@@ -358,7 +358,7 @@ describe("Renderer", () => {
       expect(output).toContain("7%");
     });
 
-    it("shows bottleneck (highest) percentage in smart mode", () => {
+    it("smart mode shows only overall when using Opus", () => {
       const config: LimitlineConfig = {
         ...DEFAULT_CONFIG,
         weekly: {
@@ -367,15 +367,20 @@ describe("Renderer", () => {
         },
       };
       const renderer = new Renderer(config);
+      // defaultEnvInfo has model: "Opus 4.5"
       const output = renderer.render(defaultBlockInfo, weeklyInfoWithModelData, defaultEnvInfo);
 
-      // Overall (47%) is the bottleneck here
+      // Should show overall percentage
       expect(output).toContain("47%");
-      // Should show bottleneck indicator
-      expect(output).toContain("▲");
+      // Should show week progress
+      expect(output).toContain("wk 75%");
+      // Should NOT show Sonnet-specific data or bottleneck indicator
+      expect(output).not.toContain("◇");
+      expect(output).not.toContain("▲");
+      expect(output).not.toContain("|");
     });
 
-    it("shows model-specific bottleneck when it is the highest", () => {
+    it("smart mode shows Sonnet | Overall when using Sonnet", () => {
       const config: LimitlineConfig = {
         ...DEFAULT_CONFIG,
         weekly: {
@@ -384,20 +389,18 @@ describe("Renderer", () => {
         },
       };
       const renderer = new Renderer(config);
-      const weeklyInfoOpusHigh: WeeklyInfo = {
-        percentUsed: 30,
-        weekProgressPercent: 75,
-        resetAt: new Date(),
-        isRealtime: true,
-        opusPercentUsed: 85,  // Opus is the bottleneck
-        sonnetPercentUsed: 10,
-        opusResetAt: new Date(),
-        sonnetResetAt: new Date(),
+      const sonnetEnvInfo: EnvironmentInfo = {
+        ...defaultEnvInfo,
+        model: "Sonnet 4",
       };
-      const output = renderer.render(defaultBlockInfo, weeklyInfoOpusHigh, defaultEnvInfo);
+      const output = renderer.render(defaultBlockInfo, weeklyInfoWithModelData, sonnetEnvInfo);
 
-      expect(output).toContain("85%");
-      expect(output).toContain("▲");
+      // Should show both Sonnet (7%) and Overall (47%) with separator
+      expect(output).toContain("7%");
+      expect(output).toContain("47%");
+      expect(output).toContain("|");
+      // Should show week progress
+      expect(output).toContain("wk 75%");
     });
 
     it("detailed mode hides unavailable model limits", () => {
