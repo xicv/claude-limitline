@@ -176,7 +176,7 @@ npm run dev      # Watch mode
 
 ## Testing
 
-The project uses [Vitest](https://vitest.dev/) for testing with 96 tests covering config loading, themes, utilities, and rendering.
+The project uses [Vitest](https://vitest.dev/) for testing with 155 tests covering config loading, themes, segments, utilities, and rendering.
 
 ```bash
 npm test              # Run tests once
@@ -190,8 +190,13 @@ npm run test:coverage # Coverage report
 |------|-------|----------|
 | `src/config/loader.test.ts` | 7 | Config loading, merging, fallbacks |
 | `src/themes/index.test.ts` | 37 | Theme retrieval, color validation |
+| `src/segments/block.test.ts` | 8 | Block segment, time calculations |
+| `src/segments/weekly.test.ts` | 10 | Weekly segment, week progress |
+| `src/utils/oauth.test.ts` | 10 | API responses, caching |
 | `src/utils/claude-hook.test.ts` | 21 | Model name formatting |
-| `src/utils/environment.test.ts` | 10 | Directory/model detection |
+| `src/utils/environment.test.ts` | 20 | Git branch, directory detection |
+| `src/utils/terminal.test.ts` | 13 | Terminal width, ANSI handling |
+| `src/utils/logger.test.ts` | 8 | Debug/error logging |
 | `src/renderer.test.ts` | 21 | Segment rendering, ordering |
 
 ## Debug Mode
