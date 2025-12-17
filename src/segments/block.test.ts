@@ -30,6 +30,8 @@ describe("BlockProvider", () => {
           isOverLimit: false,
         },
         sevenDay: null,
+        sevenDayOpus: null,
+        sevenDaySonnet: null,
       });
 
       const result = await provider.getBlockInfo(15);
@@ -49,6 +51,8 @@ describe("BlockProvider", () => {
           isOverLimit: false,
         },
         sevenDay: null,
+        sevenDayOpus: null,
+        sevenDaySonnet: null,
       });
 
       const result = await provider.getBlockInfo();
@@ -66,6 +70,8 @@ describe("BlockProvider", () => {
           resetAt: new Date(),
           isOverLimit: false,
         },
+        sevenDayOpus: null,
+        sevenDaySonnet: null,
       });
 
       const result = await provider.getBlockInfo();
@@ -112,6 +118,8 @@ describe("BlockProvider", () => {
           isOverLimit: true,
         },
         sevenDay: null,
+        sevenDayOpus: null,
+        sevenDaySonnet: null,
       });
 
       const result = await provider.getBlockInfo();
