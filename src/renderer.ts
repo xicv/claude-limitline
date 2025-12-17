@@ -279,132 +279,53 @@ export class Renderer {
     };
   }
 
-  private renderWeeklyDetailed(ctx: RenderContext): Segment | null {
-    const info = ctx.weeklyInfo!;
-    const overallIcon = this.usePowerline ? this.symbols.weekly : "All";
-    const opusIcon = this.usePowerline ? this.symbols.opus : "Op";
-    const sonnetIcon = this.usePowerline ? this.symbols.sonnet : "So";
-
-    // Build parts for each available limit
-    const parts: string[] = [];
-
-    // Overall
-    if (info.percentUsed !== null) {
-      const trend = this.getTrendSymbol(ctx.trendInfo?.sevenDayTrend ?? null);
-      parts.push(`${overallIcon}${Math.round(info.percentUsed)}%${trend}`);
-    }
-
-    // Opus
-    if (info.opusPercentUsed !== null) {
-      const trend = this.getTrendSymbol(ctx.trendInfo?.sevenDayOpusTrend ?? null);
-      parts.push(`${opusIcon}${Math.round(info.opusPercentUsed)}%${trend}`);
-    }
-
-    // Sonnet
-    if (info.sonnetPercentUsed !== null) {
-      const trend = this.getTrendSymbol(ctx.trendInfo?.sevenDaySonnetTrend ?? null);
-      parts.push(`${sonnetIcon}${Math.round(info.sonnetPercentUsed)}%${trend}`);
-    }
-
-    if (parts.length === 0) {
-      return {
-        text: ` ${overallIcon} -- `,
-        colors: this.theme.weekly,
-      };
-    }
-
-    // In compact mode, use shorter separator
-    const separator = ctx.compact ? " " : " ";
-    const text = parts.join(separator);
-
-    // Use overall colors but could be enhanced with warning colors if any is high
-    const maxPercent = Math.max(
-      info.percentUsed ?? 0,
-      info.opusPercentUsed ?? 0,
-      info.sonnetPercentUsed ?? 0
-    );
-    const colors = this.getColorsForPercent(maxPercent, this.theme.weekly);
-
-    return {
-      text: ` ${text} `,
-      colors,
-    };
-  }
-
   private renderWeeklySmart(ctx: RenderContext): Segment | null {
     const info = ctx.weeklyInfo!;
     const overallIcon = this.usePowerline ? this.symbols.weekly : "All";
-    const opusIcon = this.usePowerline ? this.symbols.opus : "Op";
     const sonnetIcon = this.usePowerline ? this.symbols.sonnet : "So";
+    const showWeekProgress = this.config.weekly?.showWeekProgress ?? true;
 
-    // Find the bottleneck (highest percentage)
-    interface LimitInfo {
-      name: string;
-      icon: string;
-      percent: number;
-      trend: "up" | "down" | "same" | null;
-      colors: SegmentColor;
+    // Detect current model from environment
+    const currentModel = ctx.envInfo.model?.toLowerCase() ?? "";
+    const isSonnet = currentModel.includes("sonnet");
+
+    // If using Sonnet and we have Sonnet-specific data, show: Sonnet | Overall
+    if (isSonnet && info.sonnetPercentUsed !== null && info.percentUsed !== null) {
+      const sonnetTrend = this.getTrendSymbol(ctx.trendInfo?.sevenDaySonnetTrend ?? null);
+      const overallTrend = this.getTrendSymbol(ctx.trendInfo?.sevenDayTrend ?? null);
+
+      let text = `${sonnetIcon}${Math.round(info.sonnetPercentUsed)}%${sonnetTrend} | ${overallIcon}${Math.round(info.percentUsed)}%${overallTrend}`;
+
+      if (showWeekProgress && !ctx.compact) {
+        text += ` (wk ${info.weekProgressPercent}%)`;
+      }
+
+      // Use warning/critical colors based on highest percentage
+      const maxPercent = Math.max(info.sonnetPercentUsed, info.percentUsed);
+      const colors = this.getColorsForPercent(maxPercent, this.theme.weekly);
+
+      return {
+        text: ` ${text} `,
+        colors,
+      };
     }
 
-    const limits: LimitInfo[] = [];
-
-    if (info.percentUsed !== null) {
-      limits.push({
-        name: "all",
-        icon: overallIcon,
-        percent: info.percentUsed,
-        trend: ctx.trendInfo?.sevenDayTrend ?? null,
-        colors: this.theme.weekly,
-      });
-    }
-
-    if (info.opusPercentUsed !== null) {
-      limits.push({
-        name: "opus",
-        icon: opusIcon,
-        percent: info.opusPercentUsed,
-        trend: ctx.trendInfo?.sevenDayOpusTrend ?? null,
-        colors: this.theme.opus,
-      });
-    }
-
-    if (info.sonnetPercentUsed !== null) {
-      limits.push({
-        name: "sonnet",
-        icon: sonnetIcon,
-        percent: info.sonnetPercentUsed,
-        trend: ctx.trendInfo?.sevenDaySonnetTrend ?? null,
-        colors: this.theme.sonnet,
-      });
-    }
-
-    if (limits.length === 0) {
+    // For Opus, Haiku, or when no model-specific data: just show overall
+    if (info.percentUsed === null) {
       return {
         text: ` ${overallIcon} -- `,
         colors: this.theme.weekly,
       };
     }
 
-    // Find the bottleneck (highest percentage)
-    const bottleneck = limits.reduce((a, b) => (a.percent >= b.percent ? a : b));
+    const trend = this.getTrendSymbol(ctx.trendInfo?.sevenDayTrend ?? null);
+    let text = `${overallIcon}${Math.round(info.percentUsed)}%${trend}`;
 
-    const trend = this.getTrendSymbol(bottleneck.trend);
-    const bottleneckIndicator = limits.length > 1 ? this.symbols.bottleneck : "";
-
-    // Show percentage with bottleneck indicator
-    let text = `${bottleneck.icon}${Math.round(bottleneck.percent)}%${trend}`;
-    if (bottleneckIndicator && !ctx.compact) {
-      text += bottleneckIndicator;
-    }
-
-    // Add week progress if enabled and not compact
-    const showWeekProgress = this.config.weekly?.showWeekProgress ?? true;
     if (showWeekProgress && !ctx.compact) {
       text += ` (wk ${info.weekProgressPercent}%)`;
     }
 
-    // Use colors based on bottleneck percentage
-    const colors = this.getColorsForPercent(bottleneck.percent, bottleneck.colors);
+    const colors = this.getColorsForPercent(info.percentUsed, this.theme.weekly);
 
     return {
       text: ` ${text} `,
@@ -420,8 +341,6 @@ export class Renderer {
     const viewMode = this.config.weekly?.viewMode ?? "simple";
 
     switch (viewMode) {
-      case "detailed":
-        return this.renderWeeklyDetailed(ctx);
       case "smart":
         return this.renderWeeklySmart(ctx);
       case "simple":
